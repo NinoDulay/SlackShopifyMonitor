@@ -1,0 +1,10 @@
+slacksdk
+slackeventsapi
+python-dotenv
+flask
+requests
+random_user_agent
+free-proxy
+slack_bolt
+flask_apscheduler
+jsondiff
