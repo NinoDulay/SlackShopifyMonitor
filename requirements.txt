@@ -8,3 +8,4 @@ free-proxy
 slack_bolt
 flask_apscheduler
 jsondiff
+apscheduler

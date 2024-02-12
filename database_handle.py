@@ -31,6 +31,7 @@ def check_proxy_if_exists(proxy:str):
     db = open_db()
     c = db['c']
 
+    print(type(proxy), flush=True)
     c.execute('SELECT * FROM proxies WHERE proxy = ?', (proxy, ))
     data = [row for row in c.fetchall()]
 
@@ -78,8 +79,10 @@ def get_all_proxies() -> list:
 
     c.execute(
             'SELECT * FROM proxies WHERE state = (?) OR state = (?)', ('unchecked', 'working'))
+    data = [row for row in c.fetchall()]
+
     close_db(db)
-    return True
+    return data
 
 
 def clear_proxies() -> bool:

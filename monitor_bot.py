@@ -1,6 +1,5 @@
 import os
 import json
-import time
 
 from pathlib import Path
 from dotenv import load_dotenv
@@ -9,8 +8,6 @@ from flask_apscheduler import APScheduler
 
 import slack_sdk
 from slackeventsapi import SlackEventAdapter
-from slack_bolt import App
-from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from monitor_handle import get_info_by_url, get_all_products_data, check_new_variants, check_product_prices, check_for_new_products
 from database_handle import insert_manual_product, get_all_monitored_products, remove_manual_product, insert_keyword_product, read_keyword_product, get_all_keyword_products, remove_keyword_product, update_keyword_product, add_new_proxy
@@ -52,7 +49,7 @@ def view_monitored_products():
     ack_payload = {"text": "Viewing products that are monitored..."}
     client.chat_postMessage(channel=channel_id, **ack_payload)
     
-    monitored_products = get_all_monitored_products()
+    monitored_products = get_all_monitored_products(client)
     display_data = ""
     for handle, url, website, data in monitored_products:
         data = f"<{url.strip()}|{handle.replace('-',' ').title().strip()}>\n"
@@ -131,6 +128,10 @@ def add_monitored_product():
                     product_handle = product_handle.split("?")[0]
                 
                 product_info = get_info_by_url(product_url)
+
+                if "handle" not in product_info:
+                    client.chat_postMessage(channel=channel_id, text=f"The provided URL is not a valid shopify site")
+                    return Response(), 200
 
                 data = [product_handle.strip(), product_url.strip(), final_url.strip(), json.dumps(product_info)]
                 
@@ -266,9 +267,19 @@ def add_proxy():
 
     return Response(), 200
 
-if __name__ == "__main__":
-    scheduler.add_job(id='Check New Variants', func=check_new_variants, trigger="interval", seconds=600)
-    scheduler.add_job(id='Check Product Prices', func=check_product_prices, trigger="interval", seconds=600)
-    scheduler.add_job(id='Check for New Products', func=check_for_new_products, trigger="interval", seconds=1800)
-    scheduler.start()
-    app.run(debug=True, port=5000)
+# if __name__ == "__main__":
+    # scheduler.add_job(id='Check New Variants', func=check_new_variants, trigger="interval", seconds=600)
+    # scheduler.add_job(id='Check Product Prices', func=check_product_prices, trigger="interval", seconds=600)
+    # scheduler.add_job(id='Check for New Products', func=check_for_new_products, trigger="interval", seconds=1800)
+    # scheduler.start()
+    #app.run()
+
+
+
+
+
+
+######
+# KEYWORD PRODUCT REPEATS (DATABASE ??)
+# CANT ASSURE PRICE/AVAILABILITY
+# FIX ISSUES ON STOCKS IF SITES ARE NOT ACCESSIBLE

@@ -12,7 +12,7 @@ from pprint import pprint
 from random_user_agent.params import SoftwareName, HardwareType
 from random_user_agent.user_agent import UserAgent
 
-from database_handle import get_all_manual_products, update_manual_product, get_all_keyword_products, insert_keyword_product, edit_proxy, get_all_proxies
+from database_handle import get_all_manual_products, update_manual_product, get_all_keyword_products, insert_keyword_product, edit_proxy, get_all_proxies, update_keyword_product_data
 from config import USERNAME, COLOR, CHANNEL
 
 ## SETUP USER AGENTS RANDOMIZER
@@ -39,16 +39,24 @@ HEADERS = {
     }
 env_path = Path(".") / '.env'
 load_dotenv(dotenv_path=env_path)
-WEBHOOK = os.environ['G_WEBHOOK']
+#WEBHOOK = os.environ['G_WEBHOOK']
+WEBHOOK="https://hooks.slack.com/services/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"
 
+USERNAME = "glenallagroup"
+PASSWORD = "Glenallagroup24"
 def variants_checker(product_url:str, old_data: dict, new_data: dict) -> dict:
     option_index = 0
     stock = None
     is_tshirt = False
     tshirt_sizes = ['XXXXXS', '5XS','XXXXS', '4XS', 'XXXS', '3XS', '2XS', 'XXS', 'XS', 'S', 'SM', 'SMALL', 'M', 'MD', 'MEDIUM', 'L', 'LG', 'LARGE', 'XL', 'XXL', '2XL', 'XXXL', '3XL', 'XXXXL', '4XL', 'XXXXXL', '5XL', 'XXXXXXL', '6XL']
 
+    if not old_data:
+        print("old_data is empty", product_url)
+        return dict()
+    
     old_variants = old_data['variants']
     new_variants = new_data['variants']
+
 
     restocks = {
         'title': new_data['title'],
@@ -99,6 +107,7 @@ def variants_checker(product_url:str, old_data: dict, new_data: dict) -> dict:
 
                 restocks['new_variants'].append({'what':'REMAIN','size': size, 'stock': stock, 'atc_url': product_url[:product_url.find('/', 10)] + '/cart/' + str(new['id']) + ":1", 'sku': new['sku'], 'variant_id': new['id'], 'price': new['price']/100, 'available': new['available']})
 
+    print(restocks)
     return restocks
 
 def variant_finder(product_url:str, data: dict) -> dict:
@@ -351,6 +360,29 @@ def slack_webhook_new_product(product_url:str):
     if len(stocks) > 0:
         result = rq.post(WEBHOOK, data=json.dumps(slack_msg))
 
+
+def slack_webhook_no_more_proxies():
+    slack_msg = {
+        "username": USERNAME,
+        "icon_emoji": "money_with_wings",
+        "channel": CHANNEL,
+        "attachments":[{
+            "color": COLOR,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*NO MORE USABLE PROXIES\nPlease add more*",
+                    }
+                }
+            ]
+        }
+        ]
+    }
+
+    result = rq.post(WEBHOOK, data=json.dumps(slack_msg))
+
 def get_random_proxy():
     pass
 
@@ -366,23 +398,37 @@ def get_info_by_url(product_url:str) -> dict:
         while True:
             if len(proxies) == 0:
                 failed = True
-            proxy = random.choice(proxies)
-            try:
-                html = s.get(product_url.split("?")[0]+'.js', headers=HEADERS, proxies=proxy,verify=False, timeout=TIMEOUT)
-                if proxy[1] == "unchecked":
-                    edit_proxy(proxy, "working")
                 break
-            except Exception as e:
-                edit_proxy(proxy[0], "not working")
-                logging.info(proxy[0], "not working")
-                proxies.remove(proxy)
-                continue
-        if failed:
-            logging.info("No more usable proxies")
+            else:
+                proxy = random.choice(proxies)
+                
+                new_proxy = {
+                    "http": f"http://user-{USERNAME}:{PASSWORD}@{proxy[0]}",
+                    "https": f"https://user-{USERNAME}:{PASSWORD}@{proxy[0]}"
+                }
+                try:
+                    html = s.get(product_url.split("?")[0]+'.js', headers=HEADERS, proxies=new_proxy,verify=False, timeout=TIMEOUT)
+                    if proxy[1] == "unchecked":
+                        edit_proxy(proxy[0], "working")
+                    break
+                except Exception as e:
+                    logging.info(e)
+                    edit_proxy(proxy[0], "not working")
+                    logging.info(f"{new_proxy['https']}, not working")
+                    proxies.remove(proxy)
+                    continue
+        if failed:        
             break
-
+        
+        # print("html.text - get_info_by_url")
+        # print(html.text)
+        print(product_url)
         if html.text:
-            product = json.loads(html.text)
+            try:
+                product = json.loads(html.text)
+            except Exception as e:
+                print("Not a valid shopify site, moving forward")
+                break
 
             product_item = {
                 'id': product['id'],
@@ -416,24 +462,30 @@ def get_all_products_data(url:str) -> list:
         while True:
             if len(proxies) == 0:
                 failed = True
-            proxy = random.choice(proxies)
-            try:
-                html = s.get(final_url + f'?page={page}&limit=250', proxies=proxy, headers=HEADERS, verify=False, timeout=20)
-                if proxy[1] == "unchecked":
-                    edit_proxy(proxy, "working")
                 break
-            except Exception as e:
-                edit_proxy(proxy[0], "not working")
-                logging.info(proxy[0], "not working")
-                proxies.remove(proxy)
-                continue
+            else:
+                proxy = random.choice(proxies)
+                new_proxy = {
+                    "http": f"http://user-{USERNAME}:{PASSWORD}@{proxy[0]}",
+                    "https": f"https://user-{USERNAME}:{PASSWORD}@{proxy[0]}"
+                }
+                try:
+                    html = s.get(final_url + f'?page={page}&limit=250', proxies=new_proxy, headers=HEADERS, verify=False, timeout=20)
+                    if proxy[1] == "unchecked":
+                        edit_proxy(proxy[0], "working")
+                    break
+                except OSError as e:
+                    edit_proxy(proxy[0], "not working")
+                    logging.info(new_proxy['https'], "not working")
+                    proxies.remove(proxy)
+                    continue
         
         if failed:
-            logging.info("No more usable proxy")
+            logging.info("No more usable proxies")
             break
         
         output = json.loads(html.text)['products']
-        if output == []:
+        if output == [] or output == dict() or output == {}:
             break
         else:
             # Stores particular details in array
@@ -463,8 +515,6 @@ def get_all_products_data(url:str) -> list:
 # print(data)
 
 # Do all tasks that checks for voucher, new products, product prices, and then voucher
-def check_vouchers():
-    pass
 
 def compare_keyword_products(old_data, new_data, keywords):
     old_data_titles = []
@@ -499,6 +549,12 @@ def check_for_new_products():
     old_data = list()
     new_data = list()
     new_products_by_keyword = list()
+
+    proxies = get_all_proxies()
+    if len(proxies) == 0:
+        slack_webhook_no_more_proxies()
+        return
+
     for url, keywords, data in all_sites_data:
         new_data = get_all_products_data(url.strip())
         old_data = json.loads(data)
@@ -510,15 +566,25 @@ def check_for_new_products():
 
         print("Done comparing two data")
 
-        for new_product in new_products_by_keyword:
-            # POST IN SLACK
-            product_url = ""
-            if "https://" in url:
-                product_url = url+"/products/"+new_product['handle']
-            else:
-                product_url = "https://"+url+"/products/"+new_product['handle']
-            slack_webhook_new_product(product_url)
-        
+        try:
+            for new_product in new_products_by_keyword:
+                # POST IN SLACK
+                product_url = ""
+                if "https://" in url:
+                    product_url = url+"/products/"+new_product['handle']
+                else:
+                    product_url = "https://"+url+"/products/"+new_product['handle']
+                slack_webhook_new_product(product_url)
+
+                try:
+                    update_keyword_product_data(url, get_info_by_url(product_url))
+                    print(f"{url} product is saved on the database")
+                except Exception as e:
+                    print(f"{url} product is not saved")
+
+        except KeyError:
+            print("Not a shopify site", flush=True)
+
         old_data = []
         new_data = []
     
@@ -527,20 +593,31 @@ def check_product_prices():
     data = get_all_manual_products()
     new_data = list()
 
+    proxies = get_all_proxies()
+    if len(proxies) == 0:
+        slack_webhook_no_more_proxies()
+        return
+
     # Get new data from scraping
     for row in data:
         updated_product_data = get_info_by_url(row[1])
         new_data.append(updated_product_data)
 
-        if (update_manual_product(updated_product_data['handle'], json.dumps(updated_product_data))):
-            print(f"Updated {updated_product_data['handle']} in Database")
-        else:
-            print(f"THERE IS NO {updated_product_data['handle']} IN THE MONITOR.")
+        try:
+            if (update_manual_product(updated_product_data['handle'], json.dumps(updated_product_data))):
+                print(f"Updated {updated_product_data['handle']} in Database")
+            else:
+                print(f"THERE IS NO {updated_product_data['handle']} IN THE MONITOR.")
+        except KeyError:
+            print("Not a shopify site", flush=True)
 
 
     # Cross-match those products with new prices
     for row, new_row in zip(data, new_data):
         old_row = json.loads(row[3])
+
+        if not old_row:
+            return 
         product_url = row[1]
         # If old row and new row are diferent (!=), post webhook
         if old_row['price']/100 < new_row['price']/100:
@@ -551,16 +628,26 @@ def check_product_prices():
 def check_new_variants():
     data = get_all_manual_products()
     new_data = list()
+
+    proxies = get_all_proxies()
+    if len(proxies) == 0:
+        slack_webhook_no_more_proxies()
+        return 
     
     # Get new data from scraping
     for row in data:
         updated_product_data = get_info_by_url(row[1])
         new_data.append(updated_product_data)
+
+        logging.info(updated_product_data)
         
-        if (update_manual_product(updated_product_data['handle'], json.dumps(updated_product_data))):
-            print(f"Updated {updated_product_data['handle']} in Database")
-        else:
-            print(f"THERE IS NO {updated_product_data['handle']} IN THE MONITOR.")
+        try:
+            if (update_manual_product(updated_product_data['handle'], json.dumps(updated_product_data))):
+                print(f"Updated {updated_product_data['handle']} in Database")
+            else:
+                print(f"THERE IS NO {updated_product_data['handle']} IN THE MONITOR.")
+        except KeyError:
+            print("Not a shopify site", flush=True)
 
 
     # Cross-match those products with new attributes

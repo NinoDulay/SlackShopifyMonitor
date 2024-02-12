@@ -1,0 +1,69 @@
+See All Monitored Products:
+
+	/view-monitored-products	
+
+	- Allows you to see all monitored products with hyperlink
+
+Add Monitored Products:
+	
+	/add-monitored-products [product_url]
+	
+	Ex:
+	/add-monitored-products https://bdgastore.com/products/air-jordan-3-retro-craft-fj9479-100
+	
+	- Allows you to add a new product to be monitored (price and stock)
+	
+Add Keyword-Based Product:
+	
+	/add-url-keywords [site_url], [keyword1], [keyword2], ...
+	
+	Ex: 
+	/add-url-keywords bdgastore.com, shoes, adidas, shoewear
+	
+	- Allows you to add a site and post updates on new product based on the given keywords
+	
+Delete Products:
+	
+	/delete-product [product_url]
+	
+	Ex:
+	/delete-product https://bdgastore.com/products/air-jordan-3-retro-craft-fj9479-100
+	
+	or
+	
+	/delete-product Air Jordan 3 Retro Craft Fj9479 100
+	
+	- Allows you to delete monitored products based on their name or link
+	
+See All Monitored Websites via Keywords:
+	
+	/view-keywords-websites
+	
+	- Allows you to see all sites that you are monitoring and their keyword
+	
+Edit keyword-based sites monitors:
+	
+	/edit-keywords-websites [site_url], [new_keyword1], [new_keyword2]
+	
+	Ex: This will overwrite the previous keywords, so you need to type them all
+	/edit-keywords-websites bdgastore.com, shoes, nike, shoewear
+	
+	-Allows you to edit the monitored sites' keywords 
+	
+Delete keyword-based sites:
+	
+	/delete-keywords-websites [site_url]
+	
+	Ex:
+	/delete-keywords-websites bdgastore.com
+	
+	- Deletes sites that are monitored based on their name
+	
+Add A New Proxy:
+	
+	/add-proxy [proxy_url]
+	
+	Ex: (Make sure that the pattern is [url:port])
+	/add-proxy ddc.oxylabs.io:8001
+	
+	- Allows you to add proxy that will be rotated on each request.
